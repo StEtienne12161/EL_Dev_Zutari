@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>JSON&gt;CSV</title>
+  <style>
+    :root {
+      --ink: #e8f7f2;
+      --muted: #7d9995;
+      --paper: #080d12;
+      --panel: #101a20;
+      --line: #20343a;
+      --green: #20e6a3;
+      --green-dark: #0e9c77;
+      --mint: #142e31;
+      --yellow: #f7d154;
+      --danger: #ff6c7c;
+      --shadow: 0 18px 60px rgba(0, 0, 0, .35);
+      font-family: 'Trebuchet MS', Verdana, sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; color: var(--ink); background: radial-gradient(circle at 85% 0%, #12302d 0, transparent 32%), var(--paper); }
+    .shell { max-width: 1440px; margin: 0 auto; padding: 28px 34px 48px; }
+    header { display: flex; justify-content: space-between; align-items: flex-start; gap: 24px; padding-bottom: 30px; }
+    .brand { display: flex; align-items: center; gap: 13px; color: var(--green); font: 700 14px/1.1 Consolas, monospace; letter-spacing: .08em; text-transform: uppercase; }
+    .mark { width: 34px; height: 34px; display: grid; place-items: center; color: var(--paper); background: var(--green); border-radius: 4px; box-shadow: 0 0 20px rgba(32, 230, 163, .35); font: 700 15px Consolas, monospace; }
+    h1 { max-width: 690px; margin: 36px 0 10px; color: #f4fffc; font: 700 clamp(44px, 6vw, 82px)/.92 Consolas, monospace; letter-spacing: -.045em; text-transform: uppercase; }
+    h1 em { color: var(--green); font-style: normal; text-shadow: 0 0 28px rgba(32, 230, 163, .35); }
+    .intro { max-width: 570px; margin: 0; color: var(--muted); font-size: 16px; line-height: 1.55; }
+    .badge { margin-top: 5px; padding: 10px 13px; color: var(--green); background: var(--mint); border: 1px solid var(--green-dark); border-radius: 4px; font: 700 11px Consolas, monospace; letter-spacing: .06em; text-transform: uppercase; white-space: nowrap; }
+    .workspace { display: grid; grid-template-columns: minmax(320px, .75fr) minmax(0, 1.55fr); gap: 22px; align-items: start; }
+    .panel { background: rgba(16, 26, 32, .92); border: 1px solid var(--line); border-radius: 4px; box-shadow: var(--shadow), 0 0 0 1px rgba(32, 230, 163, .03); overflow: hidden; }
+    .panel-head { display: flex; justify-content: space-between; align-items: center; padding: 18px 20px; border-bottom: 1px solid var(--line); background: #0d161b; }
+    .panel-title { margin: 0; color: var(--green); font: 700 12px Consolas, monospace; letter-spacing: .1em; text-transform: uppercase; }
+    .panel-note { color: var(--muted); font: 11px Consolas, monospace; }
+    textarea { width: 100%; min-height: 500px; display: block; padding: 21px; resize: vertical; border: 0; outline: 0; color: #b8f8df; background: #0a1116; font: 14px/1.65 Consolas, 'Courier New', monospace; }
+    textarea:focus { box-shadow: inset 0 0 0 1px var(--green); }
+    .input-actions { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 13px 15px; border-top: 1px solid var(--line); }
+    .file-label, button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 38px; padding: 0 14px; border: 1px solid var(--line); border-radius: 3px; color: var(--ink); background: #152229; font: 700 11px Consolas, monospace; cursor: pointer; }
+    button:hover, .file-label:hover { border-color: var(--green); color: var(--green); box-shadow: 0 0 15px rgba(32, 230, 163, .15); }
+    button.primary { border-color: var(--green); color: var(--paper); background: var(--green); }
+    button.primary:hover { background: #56f3bd; color: var(--paper); }
+    button:disabled { cursor: not-allowed; opacity: .45; }
+    input[type=file] { display: none; }
+    .status { min-height: 18px; color: var(--muted); font: 12px Arial, sans-serif; }
+    .status.error { color: var(--danger); }
+    .preview { min-width: 0; }
+    .preview-tools { display: flex; gap: 8px; align-items: center; }
+    .table-wrap { min-height: 500px; overflow: auto; }
+    .horizontal-scroll { height: 17px; overflow-x: auto; overflow-y: hidden; background: #0a1116; border-bottom: 1px solid var(--line); scrollbar-color: var(--green-dark) #101a20; }
+    .horizontal-scroll-inner { height: 1px; }
+    table { width: 100%; border-collapse: collapse; text-align: left; font: 13px Consolas, 'Courier New', monospace; }
+    th { position: sticky; top: 0; z-index: 1; padding: 13px 15px; color: var(--green); background: #14272b; border-bottom: 1px solid var(--green-dark); font-size: 11px; letter-spacing: .07em; text-transform: uppercase; white-space: nowrap; }
+    td { max-width: 250px; padding: 14px 15px; color: #c7d9d4; border-bottom: 1px solid #1b2b31; vertical-align: top; white-space: pre-wrap; overflow-wrap: anywhere; }
+    tr:hover td { background: #15262b; color: #f4fffc; }
+    .empty { min-height: 500px; display: grid; place-items: center; padding: 30px; color: var(--muted); text-align: center; }
+    .empty strong { display: block; margin-bottom: 7px; color: var(--green); font: 700 22px Consolas, monospace; }
+    .empty p { margin: 0; font-size: 14px; line-height: 1.5; }
+    .stats { display: flex; gap: 28px; padding: 15px 20px; border-top: 1px solid var(--line); }
+    .stat { display: grid; gap: 4px; }
+    .stat-value { color: var(--yellow); font: 21px Consolas, monospace; }
+    .stat-label { color: var(--muted); font: 10px Consolas, monospace; letter-spacing: .08em; text-transform: uppercase; }
+    .how { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; margin-top: 22px; padding: 23px 2px 0; border-top: 1px solid var(--line); }
+    .step { display: flex; gap: 12px; }
+    .step-number { flex: 0 0 25px; height: 25px; display: grid; place-items: center; border: 1px solid var(--yellow); border-radius: 2px; color: var(--yellow); font: 700 11px Consolas, monospace; }
+    .step h2 { margin: 0 0 4px; color: var(--green); font: 700 12px Consolas, monospace; letter-spacing: .08em; text-transform: uppercase; }
+    .step p { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.35; }
+    @media (max-width: 800px) {
+      .shell { padding: 20px 16px 35px; }
+      header { padding-bottom: 22px; }
+      .badge { display: none; }
+      h1 { margin-top: 28px; font-size: 52px; }
+      .workspace { grid-template-columns: 1fr; }
+      textarea, .table-wrap, .empty { min-height: 360px; }
+      .how { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header>
+      <div>
+        <div class="brand"><span class="mark">{ }</span> JSON&gt;CSV</div>
+        <h1>Make JSON<br><em>legible.</em></h1>
+        <p class="intro">Turn nested JSON into a clean, column-ready table. Inspect the shape, flatten the details, and take your CSV with you.</p>
+      </div>
+      <div class="badge">Local only · private by design</div>
+    </header>
+
+    <section class="workspace" aria-label="JSON conversion workspace">
+      <article class="panel">
+        <div class="panel-head"><h2 class="panel-title">Source JSON</h2><span class="panel-note">Paste or open a file</span></div>
+        <textarea id="jsonInput" spellcheck="false" aria-label="Source JSON"></textarea>
+        <div class="input-actions">
+          <label class="file-label" for="fileInput">Import JSON</label>
+          <input id="fileInput" type="file" accept="application/json,.json">
+          <div id="status" class="status" role="status"></div>
+          <button id="sampleButton" type="button">Load sample</button>
+        </div>
+      </article>
+
+      <article class="panel preview">
+        <div class="panel-head">
+          <div><h2 class="panel-title">Table preview</h2><span id="shapeNote" class="panel-note">Waiting for JSON</span></div>
+          <div class="preview-tools"><button id="copyButton" type="button" disabled>Copy CSV</button><button id="downloadButton" class="primary" type="button" disabled>Export CSV</button></div>
+        </div>
+        <div id="horizontalScroll" class="horizontal-scroll" aria-label="Horizontal table scroll"><div class="horizontal-scroll-inner"></div></div>
+        <div id="tableContainer" class="table-wrap">
+          <div class="empty"><div><strong>Your table will appear here.</strong><p>Keys become columns.<br>Each object becomes a readable row.</p></div></div>
+        </div>
+        <div class="stats" aria-label="Table statistics"><div class="stat"><span id="columnCount" class="stat-value">—</span><span class="stat-label">Columns</span></div><div class="stat"><span id="rowCount" class="stat-value">—</span><span class="stat-label">Rows</span></div><div class="stat"><span id="cellCount" class="stat-value">—</span><span class="stat-label">Cells</span></div></div>
+      </article>
+    </section>
+
+    <section class="how" aria-label="Conversion steps">
+      <div class="step"><span class="step-number">01</span><div><h2>Drop in JSON</h2><p>Arrays of objects, single objects, or wrapped records are supported.</p></div></div>
+      <div class="step"><span class="step-number">02</span><div><h2>Shape the matrix</h2><p>Nested values are flattened into readable paths like <b>address.city</b>.</p></div></div>
+      <div class="step"><span class="step-number">03</span><div><h2>Export cleanly</h2><p>Download a UTF-8 CSV ready for spreadsheets and analysis.</p></div></div>
+    </section>
+  </main>
+
+  <script>
+    const sample = JSON.stringify([
+      { id: 101, name: 'Mara Chen', role: 'Editor', active: true, location: { city: 'Portland', region: 'OR' }, tags: ['review', 'data'] },
+      { id: 102, name: 'Jon Bell', role: 'Analyst', active: true, location: { city: 'Austin', region: 'TX' }, tags: ['export'] },
+      { id: 103, name: 'Sofia Reed', role: 'Researcher', active: false, location: { city: 'Boston', region: 'MA' }, tags: [] }
+    ], null, 2);
+    const input = document.querySelector('#jsonInput');
+    const status = document.querySelector('#status');
+    const tableContainer = document.querySelector('#tableContainer');
+    const horizontalScroll = document.querySelector('#horizontalScroll');
+    const horizontalScrollInner = document.querySelector('.horizontal-scroll-inner');
+    const shapeNote = document.querySelector('#shapeNote');
+    const copyButton = document.querySelector('#copyButton');
+    const downloadButton = document.querySelector('#downloadButton');
+    let currentCsv = '';
+
+    function flatten(value, prefix = '', output = {}) {
+      if (value === null || value === undefined) { output[prefix || 'value'] = ''; return output; }
+      if (Array.isArray(value)) { output[prefix || 'value'] = value.map(item => typeof item === 'object' ? JSON.stringify(item) : item).join(', '); return output; }
+      if (typeof value === 'object') {
+        const entries = Object.entries(value);
+        if (!entries.length && prefix) output[prefix] = '{}';
+        entries.forEach(([key, child]) => flatten(child, prefix ? prefix + '.' + key : key, output));
+        return output;
+      }
+      output[prefix || 'value'] = String(value);
+      return output;
+    }
+
+    function normalize(parsed) {
+      if (Array.isArray(parsed)) return parsed.map(item => flatten(item));
+      if (parsed && typeof parsed === 'object') {
+        const arrayKey = Object.keys(parsed).find(key => Array.isArray(parsed[key]) && parsed[key].every(item => item && typeof item === 'object' && !Array.isArray(item)));
+        if (arrayKey) return parsed[arrayKey].map(item => flatten(item));
+        return [flatten(parsed)];
+      }
+      return [{ value: String(parsed) }];
+    }
+
+    function csvEscape(value) { const text = String(value ?? ''); return /[",\n\r]/.test(text) ? '"' + text.replace(/"/g, '""') + '"' : text; }
+
+    function render() {
+      const raw = input.value.trim();
+      if (!raw) { resetPreview(); return; }
+      try {
+        const rows = normalize(JSON.parse(raw));
+        const columns = [...new Set(rows.flatMap(row => Object.keys(row)))];
+        currentCsv = [columns, ...rows.map(row => columns.map(column => row[column] ?? ''))].map(row => row.map(csvEscape).join(',')).join('\r\n');
+        tableContainer.innerHTML = '<table><thead><tr>' + columns.map(column => '<th>' + escapeHtml(column) + '</th>').join('') + '</tr></thead><tbody>' + rows.map(row => '<tr>' + columns.map(column => '<td>' + escapeHtml(row[column] ?? '') + '</td>').join('') + '</tr>').join('') + '</tbody></table>';
+        horizontalScrollInner.style.width = tableContainer.scrollWidth + 'px';
+        horizontalScroll.scrollLeft = tableContainer.scrollLeft;
+        shapeNote.textContent = rows.length + ' ' + (rows.length === 1 ? 'row' : 'rows') + ' · flattened';
+        document.querySelector('#columnCount').textContent = columns.length;
+        document.querySelector('#rowCount').textContent = rows.length;
+        document.querySelector('#cellCount').textContent = columns.length * rows.length;
+        status.textContent = 'Ready to export'; status.className = 'status';
+        copyButton.disabled = downloadButton.disabled = false;
+      } catch (error) {
+        status.textContent = 'Invalid JSON: ' + error.message; status.className = 'status error';
+        resetPreview(true);
+      }
+    }
+
+    function escapeHtml(value) { return String(value).replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char])); }
+    function resetPreview(keepStatus = false) { if (!keepStatus) { status.textContent = ''; status.className = 'status'; } tableContainer.innerHTML = '<div class="empty"><div><strong>Your table will appear here.</strong><p>Keys become columns.<br>Each object becomes a readable row.</p></div></div>'; horizontalScrollInner.style.width = '0px'; horizontalScroll.scrollLeft = 0; shapeNote.textContent = 'Waiting for JSON'; ['columnCount', 'rowCount', 'cellCount'].forEach(id => document.querySelector('#' + id).textContent = '—'); currentCsv = ''; copyButton.disabled = downloadButton.disabled = true; }
+
+    input.addEventListener('input', render);
+    horizontalScroll.addEventListener('scroll', () => { tableContainer.scrollLeft = horizontalScroll.scrollLeft; });
+    tableContainer.addEventListener('scroll', () => { horizontalScroll.scrollLeft = tableContainer.scrollLeft; });
+    document.querySelector('#sampleButton').addEventListener('click', () => { input.value = sample; render(); });
+    document.querySelector('#fileInput').addEventListener('change', event => { const file = event.target.files[0]; if (!file) return; const reader = new FileReader(); reader.onload = () => { input.value = reader.result; render(); }; reader.readAsText(file); });
+    copyButton.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(currentCsv);
+        status.textContent = 'CSV copied to clipboard';
+        status.className = 'status';
+      } catch (error) {
+        status.textContent = 'Clipboard access was blocked; use Export CSV instead';
+        status.className = 'status error';
+      }
+    });
+    downloadButton.addEventListener('click', () => { const blob = new Blob([currentCsv], { type: 'text/csv;charset=utf-8' }); const url = URL.createObjectURL(blob); const link = document.createElement('a'); link.href = url; link.download = 'converted-data.csv'; link.click(); URL.revokeObjectURL(url); });
+    input.value = sample; render();
+  </script>
+</body>
+</html>
